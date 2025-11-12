@@ -29,7 +29,7 @@ jobs:
             exit 1
           fi
 
-      - name: Copy and patch .env file for demo
+      - name: Copy and patch .env file for prod
         run: |
           cp .env development.env
       
@@ -39,8 +39,9 @@ jobs:
           echo "Preparing archive contents..."
           [ -d dist ] || { echo "dist directory missing!"; exit 1; }
           [ -f package.json ] || { echo "package.json missing!"; exit 1; }
+          [ -f development.env ] || { echo "development.env missing!"; exit 1; }
 
-          tar -czf static-files.tar.gz dist package.json
+          tar -czf static-files.tar.gz dist package.json development.env
           echo "Archive created. Contents:"
           tar -tzf static-files.tar.gz
 
@@ -75,7 +76,10 @@ jobs:
             exit 1
           fi
 
-
+          mkdir -p environment/backup
+          [ -f development.env ] && cp development.env backup/development-backup.env
+          mv development.env environment/development.env
+          
           npm install --force
 
           #pm2 stop "shreyash-prod-backend" || true
