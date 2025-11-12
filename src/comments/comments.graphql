@@ -1,0 +1,14 @@
+type Comment {
+  id: Int!
+  postId: Int!
+  text: String!
+  author: String!
+}
+
+type Query {
+  comments(postId: Int): [Comment!]!
+}
+
+type Mutation {
+  addComment(postId: Int!, text: String!, author: String!): Comment!
+}
