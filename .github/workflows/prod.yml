@@ -29,7 +29,10 @@ jobs:
             exit 1
           fi
 
-    
+      - name: Copy and patch .env file for demo
+        run: |
+          cp .env development.env
+      
 
       - name: Archive static files
         run: |
