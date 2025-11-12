@@ -82,7 +82,7 @@ jobs:
           
           npm install --force
 
-          #pm2 stop "shreyash-prod-backend" || true
+          pm2 stop "shreyash-prod-backend" || true
           pm2 start dist/main.js --name "shreyash-prod-backend" --max-restarts 5 
           pm2 save
           EOF
