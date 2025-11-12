@@ -35,10 +35,9 @@ jobs:
         run: |
           echo "Preparing archive contents..."
           [ -d dist ] || { echo "dist directory missing!"; exit 1; }
-          [ -d public ] || { echo "public directory missing!"; exit 1; }
           [ -f package.json ] || { echo "package.json missing!"; exit 1; }
 
-          tar -czf static-files.tar.gz dist public package.json
+          tar -czf static-files.tar.gz dist package.json
           echo "Archive created. Contents:"
           tar -tzf static-files.tar.gz
 
@@ -62,7 +61,6 @@ jobs:
           timestamp=$(date +'%Y%m%d%H%M%S')
 
           [ -d dist ] && mv dist "dist_backup_$timestamp" && mv "dist_backup_$timestamp" backup/
-          [ -d public ] && mv public "public_backup_$timestamp" && mv "public_backup_$timestamp" backup/
 
           if [ -f static-files.tar.gz ]; then
             echo "Extracting static-files.tar.gz..."
