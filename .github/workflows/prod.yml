@@ -1,0 +1,83 @@
+name: Prod Deployment[shreyash.aceint.ai]
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy_prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '21.6.1'
+
+      - name: Install dependencies
+        run: npm install --force
+
+      - name: Build the application
+        run: |
+          npm run build
+          echo "Build complete. Checking contents of dist directory:"
+          ls -R dist
+          if [ ! -f "dist/main.js" ]; then
+            echo "ERROR: dist/main.js not found. Build failed or incorrect output path."
+            exit 1
+          fi
+
+    
+
+      - name: Archive static files
+        run: |
+          echo "Preparing archive contents..."
+          [ -d dist ] || { echo "dist directory missing!"; exit 1; }
+          [ -d public ] || { echo "public directory missing!"; exit 1; }
+          [ -f package.json ] || { echo "package.json missing!"; exit 1; }
+
+          tar -czf static-files.tar.gz dist public package.json
+          echo "Archive created. Contents:"
+          tar -tzf static-files.tar.gz
+
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Deploy static files to prod server
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" scp -o StrictHostKeyChecking=no static-files.tar.gz \
+          ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/root/production/shreyash.aceint.ai/backend/
+
+      - name: Extract and deploy on prod server
+        run: |
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no \
+          ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -e
+
+          cd /root/production/shreyash.aceint.ai/backend/
+
+          mkdir -p backup
+          timestamp=$(date +'%Y%m%d%H%M%S')
+
+          [ -d dist ] && mv dist "dist_backup_$timestamp" && mv "dist_backup_$timestamp" backup/
+          [ -d public ] && mv public "public_backup_$timestamp" && mv "public_backup_$timestamp" backup/
+
+          if [ -f static-files.tar.gz ]; then
+            echo "Extracting static-files.tar.gz..."
+            tar -xzf static-files.tar.gz || { echo "Extraction failed"; exit 1; }
+            rm static-files.tar.gz
+            echo "Extraction complete."
+          else
+            echo "Archive not found!"
+            exit 1
+          fi
+
+
+          npm install --force
+
+          #pm2 stop "shreyash-prod-backend" || true
+          pm2 start dist/main.js --name "shreyash-prod-backend" --max-restarts 5 
+          pm2 save
+          EOF
